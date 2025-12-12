@@ -1,0 +1,16 @@
+{
+  "name": "quantum-pi-forge-backend",
+  "version": "1.0.0",
+  "description": "Quantum Pi Forge with Gargoura Engine on Pi Mainnet",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["pi", "quantum", "forge", "gargoura"],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
