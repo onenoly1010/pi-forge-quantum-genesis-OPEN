@@ -214,6 +214,25 @@
     </div>
     
     <script>
+        let ws;
+        function connectWS() {
+            try {
+                ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+                ws.onmessage = (evt) => {
+                    const msg = JSON.parse(evt.data);
+                    if (msg.type === 'status') {
+                        const data = msg.payload;
+                        document.getElementById('status').textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                        document.getElementById('service').textContent = data.service;
+                        document.getElementById('engine').textContent = data.engine;
+                        document.getElementById('network').textContent = data.network;
+                        document.getElementById('timestamp').textContent = new Date(data.ts).toLocaleString();
+                    }
+                };
+                ws.onerror = () => { /* fallback happens via polling */ };
+            } catch (e) { /* ignore, rely on polling */ }
+        }
+
         async function refreshData() {
             try {
                 const response = await fetch('/api/status');
@@ -230,11 +249,12 @@
             }
         }
         
-        // Auto-refresh every 5 seconds
+        // Auto-refresh every 5 seconds (fallback)
         setInterval(refreshData, 5000);
         
-        // Initial load
+        // Initial load and WS connect
         refreshData();
+        connectWS();
     </script>
 </body>
 </html>
