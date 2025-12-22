@@ -8,8 +8,28 @@ const PORT = process.env.PORT || 8080;
 let requestCount = 0;
 const startedAt = Date.now();
 
+// Structured JSON logging utility
+function log(level, message, metadata = {}) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...metadata
+  };
+  console.log(JSON.stringify(entry));
+}
+
 const server = http.createServer((req, res) => {
   requestCount += 1;
+  
+  // Log incoming HTTP request
+  log('info', 'HTTP request received', {
+    method: req.method,
+    url: req.url,
+    userAgent: req.headers['user-agent'],
+    requestCount
+  });
+  
   // API endpoint for status
   if (req.url === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -58,8 +78,13 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`⚡ QUANTUM PI FORGE IGNITED - Port ${PORT}`);
-  console.log('🛡️  Gargoura Engine: ACTIVE on Pi Mainnet');
+  log('info', 'Quantum Pi Forge server started', {
+    port: PORT,
+    service: 'Quantum Pi Forge',
+    engine: 'Gargoura Active',
+    network: 'Pi Mainnet',
+    pid: process.pid
+  });
 });
 
 // --- Minimal WebSocket (RFC6455) implementation without external deps ---
@@ -128,16 +153,16 @@ setInterval(() => {
 
 // Graceful shutdown handling to prevent npm error logs
 const shutdown = (signal) => {
-  console.log(`\n🔄 Received ${signal}, shutting down gracefully...`);
+  log('info', 'Shutdown signal received', { signal });
   
   server.close(() => {
-    console.log('✅ Server closed successfully');
+    log('info', 'Server closed successfully', { signal });
     process.exit(0);
   });
   
   // Force close after 10 seconds
   setTimeout(() => {
-    console.error('⚠️  Forced shutdown after timeout');
+    log('error', 'Forced shutdown after timeout', { signal, timeoutMs: 10000 });
     process.exit(1);
   }, 10000);
 };
@@ -148,11 +173,18 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Handle uncaught errors
 process.on('uncaughtException', (err) => {
-  console.error('💥 Uncaught Exception:', err);
+  log('error', 'Uncaught exception', {
+    error: err.message,
+    stack: err.stack,
+    name: err.name
+  });
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  log('error', 'Unhandled promise rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined
+  });
   process.exit(1);
 });
