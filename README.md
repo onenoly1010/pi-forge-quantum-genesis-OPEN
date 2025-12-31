@@ -19,6 +19,31 @@ Stop the container:
 docker stop quantum-forge && docker rm quantum-forge
 ```
 
+### Multi-Architecture Build (Docker Buildx)
+
+Build for both arm64 and amd64 architectures:
+
+```bash
+# Create and use a buildx builder (one-time setup)
+docker buildx create --use --name multiarch-builder --platform linux/amd64,linux/arm64
+
+# Enable QEMU for cross-platform emulation (one-time setup)
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+# Build for multiple architectures
+docker buildx build --platform linux/amd64,linux/arm64 -t quantum-pi-forge:multiarch .
+
+# To push to a registry (e.g., Docker Hub)
+docker buildx build --platform linux/amd64,linux/arm64 -t <your-registry>/quantum-pi-forge:latest --push .
+
+# To build and load for current architecture only
+docker buildx build --platform linux/amd64 -t quantum-pi-forge:amd64 --load .
+# or for arm64
+docker buildx build --platform linux/arm64 -t quantum-pi-forge:arm64 --load .
+```
+
+**Note:** Multi-arch images cannot be loaded directly into Docker with `--load`. Use `--push` to push to a registry, or build for a single platform with `--load` for local testing.
+
 ### Node.js
 
 ```bash
