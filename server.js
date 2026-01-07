@@ -32,6 +32,7 @@ const server = http.createServer((req, res) => {
   
   // API endpoint for status
   if (req.url === '/api/status') {
+    endpointCounts['/api/status'] += 1;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'online',
@@ -44,6 +45,7 @@ const server = http.createServer((req, res) => {
 
   // Healthcheck endpoint
   if (req.url === '/healthz') {
+    endpointCounts['/healthz'] += 1;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, uptime_ms: Date.now() - startedAt }));
     return;
@@ -51,20 +53,23 @@ const server = http.createServer((req, res) => {
 
   // Metrics endpoint
   if (req.url === '/api/metrics') {
+    endpointCounts['/api/metrics'] += 1; // Include current request for consistency
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       uptime_ms: Date.now() - startedAt,
       request_count: requestCount,
       endpoints: {
-        status: 'served',
-        healthz: 'served',
-        metrics: 'served'
+        '/api/status': endpointCounts['/api/status'],
+        '/healthz': endpointCounts['/healthz'],
+        '/api/metrics': endpointCounts['/api/metrics'],
+        '/': endpointCounts['/']
       }
     }));
     return;
   }
   
   // Serve dashboard HTML
+  endpointCounts['/'] += 1;
   const filePath = path.join(__dirname, 'index.html');
   fs.readFile(filePath, (err, content) => {
     if (err) {
