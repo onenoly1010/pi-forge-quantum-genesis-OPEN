@@ -1,0 +1,29 @@
+FROM python:3.11-slim-bullseye AS builder
+
+WORKDIR /app
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY server/requirements-flask.txt .
+RUN pip install --no-cache-dir -r requirements-flask.txt
+
+FROM python:3.11-slim-bullseye
+WORKDIR /app
+
+RUN groupadd -r forge && useradd -r -g forge forge
+RUN chown -R forge:forge /app
+
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY server/flask_app /app/flask_app
+
+# Health endpoint
+RUN echo 'from flask import Flask, jsonify\napp = Flask(__name__)\n@app.route("/health")\ndef health(): return jsonify({"status": "healthy"})\n@app.route("/ready")\ndef ready(): return jsonify({"status": "ready"})' > /app/health.py
+
+USER forge
+EXPOSE 5000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"
+
+CMD ["python", "-m", "flask_app.app"]
