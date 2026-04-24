@@ -1,0 +1,29 @@
+FROM python:3.11-slim-bullseye AS builder
+
+WORKDIR /app
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY server/requirements-gradio.txt .
+RUN pip install --no-cache-dir -r requirements-gradio.txt
+
+FROM python:3.11-slim-bullseye
+WORKDIR /app
+
+RUN groupadd -r forge && useradd -r -g forge forge
+RUN chown -R forge:forge /app
+
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY server/gradio_app /app/gradio_app
+
+# Health endpoint
+RUN echo 'import gradio as gr\ndef health_check(): return {"status": "healthy"}\niface = gr.Interface(fn=health_check, inputs=None, outputs="json")\niface.launch(server_name="0.0.0.0", server_port=7860, show_error=True)' > /app/health.py
+
+USER forge
+EXPOSE 7860
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/')"
+
+CMD ["python", "-m", "gradio_app.app"]
